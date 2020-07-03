@@ -154,9 +154,13 @@ covid_fitted %>% ungroup() %>%
   scale_color_manual(values=c("black", "red"), guide=FALSE) + 
   coord_cartesian(xlim=c(as.Date('2020-05-01'), as.Date(forecast_date))) + 
   facet_wrap(~place_name) + 
-  my_theme(axis.title.x=element_blank()) + 
-  labs(y="Pr(Infectious)", title="Most Risky Counties") 
+  my_theme(axis.title.x=element_blank(),
+           strip.text = element_text(size = 8)) + 
+  labs(y="Pr(Infectious)", title="Most Risky Counties",
+       subtitle=paste('Estimates made on', format(as.Date(current_date), '%b%e, %Y'))) 
 
+
+ggsave("epicurves.png", path=dir_save, width=5, height=5, scale=1.25)
 
 #-- Epi-Curve for a state
 state = "VA"
@@ -196,8 +200,12 @@ covid_fitted %>%
         axis.text.y = element_blank(),
         axis.ticks.y= element_blank(), 
         panel.grid = element_blank(),
+        strip.text = element_text(size = 8),
         legend.position=c(1,0), legend.direction="horizontal",
         legend.justification=c(1,0))
+
+ggsave("state-heat.png", path=dir_save, width=10, height=10, scale=1.25)
+
 
 
 #-- Distribution of Risk Scores
@@ -261,10 +269,17 @@ covid_fitted %>% ungroup() %>%
                        name="Pr(Infectious)") + 
   labs(title=paste('Forecasted Risk for', 
                    format(as.Date(forecast_date), '%b%e, %Y'),
-                   'in', state)) + 
+                   'in', state),
+       subtitle=paste('Estimates made on', format(as.Date(current_date), '%b%e, %Y'))) + 
   my_theme(axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(), 
         panel.grid=element_blank(), 
-        panel.background=element_rect(fill="black"))
+        panel.background=element_rect(fill="black"), 
+        legend.position="bottom",
+        legend.key.size = unit(1, "cm"))
+
+
+ggsave("state-map.png", path=dir_save, width=5, height=5, scale=1.25)
+
 

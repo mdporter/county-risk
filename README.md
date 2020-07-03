@@ -13,3 +13,19 @@ Project Team with the School of Data Science (SDS) & Department of Engineering S
 - Aaron Oliver (SDS)
 - Michael D. Porter (SDS/ESE)
 
+### Top Risky Counties
+
+<center>
+<img src="forecasts/epicurves.png?raw=true" height="50%" width="50%">
+</center>
+
+### State Risk Maps
+
+<center>
+<img src="forecasts/state-map.png?raw=true" height="50%" width="60%">
+</center>
+
+
+<center>
+<img src="forecasts/state-heat.png?raw=true" height="75%" width="75%">
+</center>
