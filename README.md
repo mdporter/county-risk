@@ -9,6 +9,7 @@ Project Team with the School of Data Science (SDS) & Department of Engineering S
 
 - Brad Howlett (SDS) 
 - Taylor Derby (SDS)
-- Brittany Durkin (SDS), 
+- Brittany Durkin (SDS)
+- Aaron Oliver (SDS)
 - Michael D. Porter (SDS/ESE)
 

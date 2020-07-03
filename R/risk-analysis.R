@@ -3,7 +3,7 @@
 # 
 # Created by:
 #   Brad Howlett (SDS), Taylor Derby (SDS), Brittany Durkin (SDS), 
-#     Michael D. Porter (SDS/ESE)
+#     Aaron Oliver (SDS), Michael D. Porter (SDS/ESE)
 #   School of Data Science (SDS) & Engineering Systems and Environment (ESE), 
 #   University of Virginia
 #
@@ -116,7 +116,7 @@ write_rds(covid_fitted,
           compress="gz")
 
 #-- Load Past Results
-# covid_fitted = read_rds(file.path(dir_save, paste0('2020-06-29', ".rds")))
+# covid_fitted = read_rds(file.path(dir_save, paste0('2020-06-30', ".rds")))
 
 #-------------------------------------------------------------------------#
 #-- Plots and Tables
@@ -132,7 +132,9 @@ covid_table = covid_fitted %>% ungroup() %>%
   select(-cases) %>% 
   left_join(county %>% select(FIPS, County, State), by='FIPS') %>% 
   mutate(County = str_replace(County, "County", "Co.")) %>% 
-  arrange(-p.inf) %>% select(FIPS, County, State, date, p.inf, p.rec, p.sus, est.cases=C, population=N) %>% 
+  arrange(-p.inf) %>% 
+  select(FIPS, County, State, date, p.inf, p.rec, p.sus, est.cases=C, 
+         population=N) %>% 
   left_join(demographics %>% select(FIPS, Unemployment_rate_2019, 
                         Median_Household_Income_2018,
                         Rural_urban_continuum_code_2013), by="FIPS")
@@ -147,7 +149,7 @@ covid_fitted %>% ungroup() %>%
   mutate(County = str_replace(County, "County", "Co.")) %>% 
   mutate(place_name = paste(County, State, sep=', ')) %>% 
   ggplot(aes(date, color=date>current_date)) +
-  geom_vline(xintercept = current_date, lty=3, color="black") + 
+  geom_vline(xintercept = as.Date(current_date), lty=3, color="black") + 
   geom_line(aes(y=p.inf)) +
   scale_color_manual(values=c("black", "red"), guide=FALSE) + 
   coord_cartesian(xlim=c(as.Date('2020-05-01'), as.Date(forecast_date))) + 
@@ -166,7 +168,7 @@ covid_fitted %>% ungroup() %>%
   mutate(County = str_replace(County, "County", "Co.")) %>% 
   mutate(place_name = paste(County, State, sep=', ')) %>% 
   ggplot(aes(date, color=date>current_date)) +
-  geom_vline(xintercept = current_date, lty=3, color="black") + 
+  geom_vline(xintercept = as.Date(current_date), lty=3, color="black") + 
   geom_line(aes(y=p.inf)) +
   scale_color_manual(values=c("black", "red"), guide=FALSE) + 
   facet_wrap(~place_name) + 
@@ -232,5 +234,37 @@ covid_fitted %>%
 #-- Current vs. Forecasted
 # TODO
 
+
+#-------------------------------------------------------------------------#
 #-- Risk Map
-# TODO
+#-------------------------------------------------------------------------#
+
+# Important note, the county polygons are loaded using "urbnmapr" R package 
+#   which can be installed using: 
+#   devtools::install_github("UrbanInstitute/urbnmapr")
+library(urbnmapr)
+
+#-- get county polygons as sf object
+county_sf = urbnmapr::get_urbn_map(map="counties", sf=TRUE) %>% 
+  st_transform(crs="+proj=merc")
+
+#-- Make Map
+state = "VA"
+
+covid_fitted %>% ungroup() %>% 
+  filter(date == as.Date(forecast_date)) %>% 
+  full_join(county_sf, by=c('FIPS' = 'county_fips')) %>% 
+  filter(state_abbv == !!state) %>% 
+  ggplot() + 
+  geom_sf(aes(geometry=geometry, fill=p.inf), color=alpha("black", .10), size=.4) + 
+  scale_fill_gradient2(low = "green", high = "red", mid = "yellow", 
+                       name="Pr(Infectious)") + 
+  labs(title=paste('Forecasted Risk for', 
+                   format(as.Date(forecast_date), '%b%e, %Y'),
+                   'in', state)) + 
+  my_theme(axis.title=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(), 
+        panel.grid=element_blank(), 
+        panel.background=element_rect(fill="black"))
+
