@@ -251,6 +251,7 @@ covid_fitted %>%
 #   which can be installed using: 
 #   devtools::install_github("UrbanInstitute/urbnmapr")
 library(urbnmapr)
+library(sf)
 
 #-- get county polygons as sf object
 county_sf = urbnmapr::get_urbn_map(map="counties", sf=TRUE) %>% 
