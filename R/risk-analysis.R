@@ -123,7 +123,7 @@ write_rds(covid_fitted,
 my_theme <- function(...) theme_bw() + theme(...)
 #-------------------------------------------------------------------------#
 
-forecast_date = "2020-08-01"
+forecast_date = "2020-08-15"
 
 
 #-- Table at forecast period
@@ -152,12 +152,13 @@ covid_fitted %>% ungroup() %>%
   geom_vline(xintercept = as.Date(current_date), lty=3, color="black") + 
   geom_line(aes(y=p.inf)) +
   scale_color_manual(values=c("black", "red"), guide=FALSE) + 
-  coord_cartesian(xlim=c(as.Date('2020-05-01'), as.Date(forecast_date))) + 
+  coord_cartesian(xlim=c(as.Date('2020-05-01'), as.Date(forecast_date)),
+                  ylim=c(0, .08)) + 
   facet_wrap(~place_name) + 
   my_theme(axis.title.x=element_blank(),
            strip.text = element_text(size = 8)) + 
   labs(y="Pr(Infectious)", title="Most Risky Counties",
-       subtitle=paste('Estimates made on', format(as.Date(current_date), '%b%e, %Y'))) 
+       subtitle=paste('Estimates made on', format(as.Date(current_date), '%b %e, %Y'))) 
 
 
 ggsave("epicurves.png", path=dir_save, width=5, height=5, scale=1.25)
@@ -269,9 +270,9 @@ covid_fitted %>% ungroup() %>%
   scale_fill_gradient2(low = "green", high = "red", mid = "yellow", 
                        name="Pr(Infectious)") + 
   labs(title=paste('Forecasted Risk for', 
-                   format(as.Date(forecast_date), '%b%e, %Y'),
+                   format(as.Date(forecast_date), '%b %e, %Y'),
                    'in', state),
-       subtitle=paste('Estimates made on', format(as.Date(current_date), '%b%e, %Y'))) + 
+       subtitle=paste('Estimates made on', format(as.Date(current_date), '%b %e, %Y'))) + 
   my_theme(axis.title=element_blank(),
         axis.text=element_blank(),
         axis.ticks=element_blank(), 
