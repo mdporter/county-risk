@@ -123,7 +123,7 @@ write_rds(covid_fitted,
 my_theme <- function(...) theme_bw() + theme(...)
 #-------------------------------------------------------------------------#
 
-forecast_date = "2020-08-15"
+forecast_date =  as.character(max(covid$date) + 14) #"2020-08-15"
 
 
 #-- Table at forecast period
