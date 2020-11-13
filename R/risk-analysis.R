@@ -248,30 +248,22 @@ covid_fitted %>%
 #-- Risk Map
 #-------------------------------------------------------------------------#
 
+library(sf)
+
+
 # Important note, the county polygons are loaded using "urbnmapr" R package 
 #   which can be installed using: 
 #   devtools::install_github("UrbanInstitute/urbnmapr")
-library(sf)
 
 #-- get county polygons as sf object
 # library(urbnmapr)
 # county_sf = urbnmapr::get_urbn_map(map="counties", sf=TRUE) %>% 
 #   st_transform(crs="+proj=merc")
-
-
-library(maps)
-county_sf = 
-  sf::st_as_sf(maps::map("county", plot = FALSE, fill = TRUE)) %>% 
-  st_transform(crs="+proj=merc") %>% 
-  left_join(county.fips, by=c("ID" = "polyname")) %>% 
-  mutate(fips = str_pad(fips, width=5, side="left", pad = "0"), 
-         state_fips = str_sub(fips, 1, 2)) %>%
-  rename(county_fips = fips, geometry = geom) %>% 
-  left_join(state.fips %>% 
-              transmute(state_abbv = abb, 
-                        state_fips = str_pad(fips, width=2, side="left", pad="0")),
-            by="state_fips")
-
+## urbnmapr package not updated for R > 4.0, so load data manually:
+# source("https://raw.githubusercontent.com/UrbanInstitute/urbnmapr/master/data-raw/utils.R")
+# source("https://raw.githubusercontent.com/UrbanInstitute/urbnmapr/master/data-raw/counties_sf.R")
+# counties_sf %>% st_transform(crs="+proj=merc") %>% write_rds("data/counties_sf.rds")
+county_sf = read_rds("data/counties_sf.rds")
 
 #-- Make Map
 state = "VA"
