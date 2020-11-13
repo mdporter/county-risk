@@ -201,7 +201,7 @@ covid_fitted %>%
         axis.text.y = element_blank(),
         axis.ticks.y= element_blank(), 
         panel.grid = element_blank(),
-        strip.text = element_text(size = 8),
+        strip.text = element_text(size = 7, hjust=0),
         legend.position=c(1,0), legend.direction="horizontal",
         legend.justification=c(1,0))
 
@@ -251,12 +251,27 @@ covid_fitted %>%
 # Important note, the county polygons are loaded using "urbnmapr" R package 
 #   which can be installed using: 
 #   devtools::install_github("UrbanInstitute/urbnmapr")
-library(urbnmapr)
 library(sf)
 
 #-- get county polygons as sf object
-county_sf = urbnmapr::get_urbn_map(map="counties", sf=TRUE) %>% 
-  st_transform(crs="+proj=merc")
+# library(urbnmapr)
+# county_sf = urbnmapr::get_urbn_map(map="counties", sf=TRUE) %>% 
+#   st_transform(crs="+proj=merc")
+
+
+library(maps)
+county_sf = 
+  sf::st_as_sf(maps::map("county", plot = FALSE, fill = TRUE)) %>% 
+  st_transform(crs="+proj=merc") %>% 
+  left_join(county.fips, by=c("ID" = "polyname")) %>% 
+  mutate(fips = str_pad(fips, width=5, side="left", pad = "0"), 
+         state_fips = str_sub(fips, 1, 2)) %>%
+  rename(county_fips = fips, geometry = geom) %>% 
+  left_join(state.fips %>% 
+              transmute(state_abbv = abb, 
+                        state_fips = str_pad(fips, width=2, side="left", pad="0")),
+            by="state_fips")
+
 
 #-- Make Map
 state = "VA"

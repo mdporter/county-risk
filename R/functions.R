@@ -198,105 +198,130 @@ SIR <- function(beta, gamma, N=1E5, I=1, S=N-I, R=0, nT = 30,
 
 # smooth_counts()
 #-----------------------------------------------------------------------------#
-# Smooth count data
-# Notes:
-#   - if number of distinct values is less than edf+2, then fit a constant
-#   - better, perhaps, to reduce edf or deg to accommodate
+# Smooth count data using mgcv::gam() function
+# Notes: ignoring ... 
+# edf is now estimated in a data driven manner using mcgv
 #-----------------------------------------------------------------------------#
-smooth_counts <- function(x, edf=5, phi=NULL, deg=3) {
-  n = length(x)
-  
+smooth_counts <- function(x, ...) {
   #- if mostly 0's, return a constant fit
-  if(n_distinct(x) < edf + 2) {
-    yhat = rep(mean(x), n)
+  if(n_distinct(x) < 7) {
+    yhat = rep(mean(x), length(x))
     attr(yhat, "edf") = 1
     return(yhat)
   }
-  penMat = crossprod(diff(diag(n), diff=deg))
-  if(is.null(phi)) { # edf specified
-    if(is.null(edf)) stop("phi or edf must be specified")
-    if(edf < deg) stop("edf must be > deg")
-    tol.edf = .01
-    if(edf < deg + tol.edf/2) edf = deg + tol.edf/2
-    int = c(1E1, 1E5)
-    opt_fun <- function(phi){
-      tryCatch({
-        est_df = penfit(x, penMat = phi*n*penMat, show.warnings = FALSE)$edf
-        edf - est_df
-      }, error = function(e) -1E9
-      ) 
-    }
-    opt = uniroot(opt_fun, interval=int, tol=tol.edf, extendInt = 'upX')  
-    phi = opt$root 
-    fit = penfit(x, penMat = phi*n*penMat)
-    if(abs(fit$edf-edf)>tol.edf){ 
-      warning(paste("edf of model is more than", tol.edf, "from target edf."))
-    } 
-  } else { # phi specified
-    if(is.null(phi)) stop("phi or edf must be specified")
-    fit = penfit(x, penMat = phi*n*penMat)
-  }
-  yhat = fit$fit
-  attr(yhat, "edf") = fit$edf
+  
+  t = seq_along(x)
+  fit = mgcv::gam(x ~ s(t), family="poisson")
+  yhat = fit$fitted.values
+  attr(yhat, "edf") = sum(fit$edf)
   return(yhat)
 }
-
-#-- penfit
-#------------------------------------------------------------------------------#
-# Estimate intensity with penalized poisson-like log-likelihood:
-# sum_i {n_i beta_i - m_i exp(beta_i)} - t(beta) %*% (penMat/2) %*% beta
-#
-# the intensity lambda_i (expected number infected) at time i is exp(beta_i)
-#
-# Inputs:
-#   n, m: vector of length t
-#   penMat: t x t penalty matrix ( phi*t(D)%*%D )
-#   beta.start: starting values for beta
-#   maxit: maximum number of iterations
-#   tol: tolerance. Stop when sum(abs(b-b.old)) < tol
-#
-# Output:
-#   list with elements: 
-#     - fit: estimated lambda
-#     - beta: estimated beta = log(lambda)
-#     - w: weight vector at convergence
-#     - edf: estimated effective degrees of freedom
-#     - niters: number of iterations to converge
-# 
-# TODO:
-#   - make faster
-#   - compute edf optional
-#   - add Std Errors
-#   - make convergence warning optional
-#------------------------------------------------------------------------------#
-penfit <- function(n, m=1, penMat, beta.start=NULL, maxit=200, tol=1e-5, out.edf=TRUE, show.warnings=TRUE) {
-  if(is.null(beta.start)) beta.start = log(n/m) 
-  if(length(beta.start) != length(n)) stop('beta.start must be same length as n')
-  if(length(m)>1 && length(m) != length(n)) stop('m must be same length as n')
-  b = pmax(beta.start, -50)  # prevent initialization too close to 0
-  P = penMat                   
-  for(i in 1:maxit) {
-    b.old = b
-    mu = exp(b)
-    r = n - m*mu
-    w = m*mu
-    #w = pmax(w, 1e-5)
-    diag(P) = diag(penMat) + w  
-    b = solve(P, r + b*w)
-    #- Check convergence
-    if(sum(abs(b-b.old)) < tol) break
-  }
-  if(show.warnings && i == maxit) warning("did not converge in maxit iterations")
-  b = as.vector(b)
   
-  out = list(fit = exp(b), beta=b, w=as.vector(w), niters=i)
-  #-- Get effective df and SE
-  if(out.edf) {
-    V = diag(solve(P))
-    edf = sum(V*w)
-    out = c(out, list(edf=edf, se=sqrt(V)))
-  }
-  return(out)
-}
+
+
+# 
+# # smooth_counts()
+# #-----------------------------------------------------------------------------#
+# # Smooth count data
+# # Notes:
+# #   - if number of distinct values is less than edf+2, then fit a constant
+# #   - better, perhaps, to reduce edf or deg to accommodate
+# #-----------------------------------------------------------------------------#
+# smooth_counts <- function(x, edf=5, phi=NULL, deg=3) {
+#   n = length(x)
+#   
+#   #- if mostly 0's, return a constant fit
+#   if(n_distinct(x) < edf + 2) {
+#     yhat = rep(mean(x), n)
+#     attr(yhat, "edf") = 1
+#     return(yhat)
+#   }
+#   penMat = crossprod(diff(diag(n), diff=deg))
+#   if(is.null(phi)) { # edf specified
+#     if(is.null(edf)) stop("phi or edf must be specified")
+#     if(edf < deg) stop("edf must be > deg")
+#     tol.edf = .1
+#     if(edf < deg + tol.edf/2) edf = deg + tol.edf/2
+#     int = c(1E1, 1E5)
+#     opt_fun <- function(phi){
+#       tryCatch({
+#         est_df = penfit(x, penMat = phi*n*penMat, show.warnings = FALSE)$edf
+#         edf - est_df
+#       }, error = function(e) -1E9
+#       ) 
+#     }
+#     opt = uniroot(opt_fun, interval=int, tol=tol.edf, extendInt = 'upX')  
+#     phi = opt$root 
+#     fit = penfit(x, penMat = phi*n*penMat)
+#     if(abs(fit$edf-edf)>tol.edf){ 
+#       warning(paste("edf of model is more than", tol.edf, "from target edf."))
+#     } 
+#   } else { # phi specified
+#     if(is.null(phi)) stop("phi or edf must be specified")
+#     fit = penfit(x, penMat = phi*n*penMat)
+#   }
+#   yhat = fit$fit
+#   attr(yhat, "edf") = fit$edf
+#   attr(yhat, "phi") = phi
+#   return(yhat)
+# }
+# 
+# #-- penfit
+# #------------------------------------------------------------------------------#
+# # Estimate intensity with penalized poisson-like log-likelihood:
+# # sum_i {n_i beta_i - m_i exp(beta_i)} - t(beta) %*% (penMat/2) %*% beta
+# #
+# # the intensity lambda_i (expected number infected) at time i is exp(beta_i)
+# #
+# # Inputs:
+# #   n, m: vector of length t
+# #   penMat: t x t penalty matrix ( phi*t(D)%*%D )
+# #   beta.start: starting values for beta
+# #   maxit: maximum number of iterations
+# #   tol: tolerance. Stop when sum(abs(b-b.old)) < tol
+# #
+# # Output:
+# #   list with elements: 
+# #     - fit: estimated lambda
+# #     - beta: estimated beta = log(lambda)
+# #     - w: weight vector at convergence
+# #     - edf: estimated effective degrees of freedom
+# #     - niters: number of iterations to converge
+# # 
+# # TODO:
+# #   - make faster
+# #   - compute edf optional
+# #   - add Std Errors
+# #   - make convergence warning optional
+# #------------------------------------------------------------------------------#
+# penfit <- function(n, m=1, penMat, beta.start=NULL, maxit=200, tol=1e-5, out.edf=TRUE, show.warnings=TRUE) {
+#   if(is.null(beta.start)) beta.start = log(n/m) 
+#   if(length(beta.start) != length(n)) stop('beta.start must be same length as n')
+#   if(length(m)>1 && length(m) != length(n)) stop('m must be same length as n')
+#   b = pmax(beta.start, -50)  # prevent initialization too close to 0
+#   P = penMat                   
+#   for(i in 1:maxit) {
+#     b.old = b
+#     mu = exp(b)
+#     r = n - m*mu
+#     w = m*mu
+#     #w = pmax(w, 1e-5)
+#     diag(P) = diag(penMat) + w  
+#     b = solve(P, r + b*w)
+#     #- Check convergence
+#     if(sum(abs(b-b.old)) < tol) break
+#   }
+#   if(show.warnings && i == maxit) warning("did not converge in maxit iterations")
+#   b = as.vector(b)
+#   
+#   out = list(fit = exp(b), beta=b, w=as.vector(w), niters=i)
+#   #-- Get effective df and SE
+#   if(out.edf) {
+#     V = diag(solve(P))
+#     edf = sum(V*w)
+#     out = c(out, list(edf=edf, se=sqrt(V)))
+#   }
+#   return(out)
+# }
 
 
